@@ -1,0 +1,8 @@
+apply plugin: "com.liferay.lang.merger"
+
+dependencies {
+	compileOnly group: "com.liferay.portal", name: "com.liferay.portal.kernel", version: "3.0.0"
+	compileOnly group: "org.osgi", name: "osgi.cmpn", version: "6.0.0"
+	compileOnly group: "com.liferay.commerce", name: "com.liferay.commerce.api", version: "1.1.0"
+	compileOnly group: "com.liferay.commerce", name: "com.liferay.commerce.product.api", version: "1.1.0"
+}

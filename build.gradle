@@ -1,0 +1,17 @@
+subprojects {
+			buildscript {
+					repositories {
+						maven {
+							url "https://repository.liferay.com/nexus/content/groups/public/"
+						}
+						maven {
+							url "https://repository.liferay.com/nexus/content/groups/liferay-ce/"
+						}
+						
+					}
+					
+					dependencies {
+						classpath group: "com.liferay", name: "com.liferay.gradle.plugins.lang.merger", version: "1.0.1"
+					}
+			}
+	}
