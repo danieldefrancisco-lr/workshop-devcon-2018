@@ -8,27 +8,30 @@ import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.service.CPDefinitionInventoryLocalService;
 import com.liferay.commerce.service.CommerceOrderItemLocalService;
+import com.liferay.expando.kernel.exception.DuplicateTableNameException;
 import com.liferay.expando.kernel.model.ExpandoColumn;
+import com.liferay.expando.kernel.model.ExpandoColumnConstants;
 import com.liferay.expando.kernel.model.ExpandoTable;
 import com.liferay.expando.kernel.model.ExpandoValue;
 import com.liferay.expando.kernel.service.ExpandoColumnLocalService;
 import com.liferay.expando.kernel.service.ExpandoTableLocalService;
 import com.liferay.expando.kernel.service.ExpandoValueLocalService;
+import com.liferay.portal.kernel.events.ActionException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.UnicodeProperties;
 
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author dfrancisco
  */
-@Component(
-		immediate = true, property = { 
-		"commerce.order.validator.key=" + MyCommerceOrderValidatorImpl.KEY,
-		"commerce.order.validator.priority:Integer=25" }, 
-		service = CommerceOrderValidator.class)
+@Component(immediate = true, property = { "commerce.order.validator.key=" + MyCommerceOrderValidatorImpl.KEY,
+		"commerce.order.validator.priority:Integer=25" }, service = CommerceOrderValidator.class)
 public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 
 	public static final String KEY = "myvalidator";
@@ -38,6 +41,33 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 	public String getKey() {
 		// TODO Auto-generated method stub
 		return KEY;
+	}
+
+	@Activate
+	public void activate() {
+		ExpandoTable table = null;
+		long[] companyIds = _portal.getCompanyIds();
+		long companyId = companyIds[0];
+		try {
+			try {
+				table = expandoTableLocalService.addDefaultTable(companyId, CPDefinition.class.getName());
+			} catch (DuplicateTableNameException dtne) {
+				table = expandoTableLocalService.getDefaultTable(companyId, CPDefinition.class.getName());
+			}
+			// Add the expando column
+			ExpandoColumn columnTemporaryOut = expandoColumnLocalService.addColumn(table.getTableId(), "temporary-out",
+					ExpandoColumnConstants.BOOLEAN, false);
+
+			// Set the indexable property on the column
+			UnicodeProperties properties = new UnicodeProperties();
+			properties.setProperty(ExpandoColumnConstants.INDEX_TYPE, Boolean.TRUE.toString());
+			columnTemporaryOut.setTypeSettingsProperties(properties);
+			expandoColumnLocalService.updateExpandoColumn(columnTemporaryOut);
+
+		} catch (PortalException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -51,11 +81,9 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 		_log.info("Checking if product " + cpDefinition.getName() + "with SKU: " + cpInstance.getSku()
 				+ " has been marked as temporarily out");
 		if (isOut) {
-		return new CommerceOrderValidatorResult(
-				commerceOrderItem.getCommerceOrderItemId(), false,
-				"product-is-no-temporarily-available");
-		}
-		else {
+			return new CommerceOrderValidatorResult(commerceOrderItem.getCommerceOrderItemId(), false,
+					"product-is-no-temporarily-available");
+		} else {
 			return new CommerceOrderValidatorResult(true);
 		}
 	}
@@ -72,15 +100,13 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 		boolean isOut = getTemporaryOutValue(cpDefinition);
 
 		_log.info("Checking if product " + cpDefinition.getName() + "with SKU: " + cpInstance.getSku()
-		+ " has been marked as temporarily out");
+				+ " has been marked as temporarily out");
 
 		if (isOut) {
-			return new CommerceOrderValidatorResult(false,
-					"product-is-no-temporarily-available");
-			}
-			else {
-				return new CommerceOrderValidatorResult(true);
-			}
+			return new CommerceOrderValidatorResult(false, "product-is-no-temporarily-available");
+		} else {
+			return new CommerceOrderValidatorResult(true);
+		}
 	}
 
 	private boolean getTemporaryOutValue(CPDefinition cpDefinition) {
@@ -92,7 +118,7 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 			ExpandoColumn columnTemporaryOut = expandoColumnLocalService.getColumn(table.getTableId(), "temporary-out");
 			ExpandoValue expandoValue = expandoValueLocalService.getValue(table.getTableId(),
 					columnTemporaryOut.getColumnId(), cpDefinition.getCPDefinitionId());
-			if (expandoValue==null) {
+			if (expandoValue == null) {
 				return false;
 			}
 			return expandoValue.getBoolean();
@@ -116,5 +142,8 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 	ExpandoTableLocalService expandoTableLocalService;
 	@Reference
 	ExpandoValueLocalService expandoValueLocalService;
+
+	@Reference
+	Portal _portal;
 
 }
