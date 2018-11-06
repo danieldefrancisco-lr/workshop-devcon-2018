@@ -23,6 +23,9 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -47,26 +50,32 @@ public class MyCommerceOrderValidatorImpl implements CommerceOrderValidator {
 	public void activate() {
 		ExpandoTable table = null;
 		long[] companyIds = _portal.getCompanyIds();
-		long companyId = companyIds[0];
-		try {
+		int companies = companyIds.length;
+		for (int i = 0; i < companies; i++) {
+			long companyId = companyIds[i];
 			try {
-				table = expandoTableLocalService.addDefaultTable(companyId, CPDefinition.class.getName());
-			} catch (DuplicateTableNameException dtne) {
-				table = expandoTableLocalService.getDefaultTable(companyId, CPDefinition.class.getName());
+				try {
+					table = expandoTableLocalService.addDefaultTable(companyId, CPDefinition.class.getName());
+				} catch (DuplicateTableNameException dtne) {
+					table = expandoTableLocalService.getDefaultTable(companyId, CPDefinition.class.getName());
+				}
+				ExpandoColumn columnTemporaryOut = expandoColumnLocalService.getColumn(table.getTableId(),
+						"temporary-out");
+				if (columnTemporaryOut == null) {
+					// Add the expando column
+					columnTemporaryOut = expandoColumnLocalService.addColumn(table.getTableId(), "temporary-out",
+							ExpandoColumnConstants.BOOLEAN, false);
+
+					// Set the indexable property on the column
+					UnicodeProperties properties = new UnicodeProperties();
+					properties.setProperty(ExpandoColumnConstants.INDEX_TYPE, Boolean.TRUE.toString());
+					columnTemporaryOut.setTypeSettingsProperties(properties);
+					expandoColumnLocalService.updateExpandoColumn(columnTemporaryOut);
+				}
+			} catch (PortalException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			// Add the expando column
-			ExpandoColumn columnTemporaryOut = expandoColumnLocalService.addColumn(table.getTableId(), "temporary-out",
-					ExpandoColumnConstants.BOOLEAN, false);
-
-			// Set the indexable property on the column
-			UnicodeProperties properties = new UnicodeProperties();
-			properties.setProperty(ExpandoColumnConstants.INDEX_TYPE, Boolean.TRUE.toString());
-			columnTemporaryOut.setTypeSettingsProperties(properties);
-			expandoColumnLocalService.updateExpandoColumn(columnTemporaryOut);
-
-		} catch (PortalException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 
