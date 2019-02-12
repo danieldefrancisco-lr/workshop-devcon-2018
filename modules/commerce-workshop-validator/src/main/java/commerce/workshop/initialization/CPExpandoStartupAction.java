@@ -17,7 +17,7 @@ import com.liferay.portal.kernel.util.UnicodeProperties;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
-@Component(immediate = true, property = { "key=global.startup.events" }, service = LifecycleAction.class)
+@Component(immediate = true, property = { "key=application.startup.events" }, service = LifecycleAction.class)
 public class CPExpandoStartupAction extends SimpleAction {
 
 	@Override
